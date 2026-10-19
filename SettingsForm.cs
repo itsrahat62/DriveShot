@@ -14,7 +14,7 @@ sealed class SettingsForm : Form
     readonly Button _save = new() { Text = "Save", AutoSize = true };
     readonly Button _cancel = new() { Text = "Cancel", AutoSize = true };
 
-    public SettingsForm(AppSettings settings)
+    public SettingsForm(AppSettings settings, Action? openConnect = null)
     {
         _settings = settings;
         SuspendLayout();
@@ -52,7 +52,12 @@ sealed class SettingsForm : Form
         Label Hint(string text) => new() { Text = text, AutoSize = true, ForeColor = Color.DimGray, MaximumSize = new Size(600, 0), Margin = new Padding(0, 0, 3, 4) };
 
         Wide(Heading("Upload with Google Apps Script (recommended)"));
-        Wide(Hint("Deploy apps-script/Code.gs as a web app (Execute as: Me, Access: Anyone) and paste its URL here."));
+        Wide(Hint("New here? Use the step-by-step setup. It creates the script for you and fills in these fields."));
+        var connect = new Button { Text = "Connect Google Drive (step-by-step)…", AutoSize = true, Margin = new Padding(0, 0, 3, 6) };
+        // Close first so this window can't later save stale values over what the setup wrote.
+        connect.Click += (_, _) => { Close(); openConnect?.Invoke(); };
+        connect.Enabled = openConnect != null;
+        Wide(connect);
         Row("Web app URL:", _scriptUrl);
         Row("Secret:", _secret);
         Wide(Heading("…or upload with rclone (used when the URL is empty)"));

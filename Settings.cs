@@ -20,7 +20,10 @@ sealed class AppSettings
     public float PenWidth { get; set; } = 3;
     public bool FirstRun { get; set; } = true;
 
-    public static string Dir { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DriveShot");
+    // DRIVESHOT_DATA can point DriveShot at another settings folder (portable use, testing).
+    public static string Dir { get; } = Environment.GetEnvironmentVariable("DRIVESHOT_DATA") is { Length: > 0 } custom
+        ? custom
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DriveShot");
     static string FilePath => Path.Combine(Dir, "settings.json");
     internal static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
@@ -124,6 +127,20 @@ static class Autostart
             using var k = Registry.CurrentUser.CreateSubKey(RunKey);
             if (on) k.SetValue(Name, $"\"{Environment.ProcessPath}\" --autostart");
             else k.DeleteValue(Name, false);
+        }
+        catch (Exception ex) { Log.Error("Autostart", ex); }
+    }
+
+    /// <summary>Fixes the startup entry only when the exe it points to no longer exists.</summary>
+    public static void RepointIfMoved()
+    {
+        try
+        {
+            using var k = Registry.CurrentUser.OpenSubKey(RunKey);
+            if (k?.GetValue(Name) is not string cmd) return;
+            var m = Regex.Match(cmd, "^\"([^\"]+)\"");
+            var target = m.Success ? m.Groups[1].Value : cmd;
+            if (!File.Exists(target)) Set(true);
         }
         catch (Exception ex) { Log.Error("Autostart", ex); }
     }

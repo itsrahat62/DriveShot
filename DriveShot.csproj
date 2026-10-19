@@ -10,13 +10,14 @@
     <RootNamespace>DriveShot</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <Product>DriveShot</Product>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="app.ico" LogicalName="app.ico" />
+    <EmbeddedResource Include="apps-script\Code.gs" LogicalName="Code.gs" />
   </ItemGroup>
 
 </Project>

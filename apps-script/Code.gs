@@ -1,20 +1,37 @@
 /**
- * DriveShot upload endpoint (Google Apps Script web app).
+ * DriveShot — Google Drive upload script (Google Apps Script web app)
  *
- * Saves each screenshot into  <FOLDER_ID>/<yyyy-MM-dd>/<name>.png  in the Drive of the
- * account that deploys this script, and returns a shareable link.
+ * Saves each screenshot into  <your folder>/<yyyy-MM-dd>/<name>.png  in the Drive of the
+ * Google account that deploys this script, and returns a shareable link.
  *
- * Setup:
- *   1. Open https://script.google.com with the Google account that owns the Drive folder.
- *   2. New project -> paste this file -> fill in FOLDER_ID and SECRET below -> Save.
- *   3. Deploy -> New deployment -> type "Web app"
- *        Execute as: Me      Who has access: Anyone
- *      Deploy, allow the permissions, and copy the Web app URL.
- *   4. In DriveShot: tray icon -> Settings -> paste the URL and the same SECRET.
+ * EASIEST: use DriveShot's tray menu -> "Connect Google Drive…". It fills in the two
+ * lines below for you and walks you through every click.
+ *
+ * MANUAL SETUP
+ *   1. Open https://script.google.com with the Google account that owns the Drive folder
+ *      and click "New project".
+ *   2. Delete everything in the editor and paste this whole file.
+ *   3. Change ONLY the two lines marked "CHANGE THIS" below:
+ *        FOLDER_ID  Open your Drive folder. The ID is the last part of the address:
+ *                   https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz
+ *                                                          └──────── FOLDER_ID ───────┘
+ *        SECRET     Any long random text, like a password. You type the same text in DriveShot.
+ *      Click Save (disk icon).
+ *   4. Deploy -> New deployment -> gear icon next to "Select type" -> Web app
+ *        Execute as: Me        Who has access: Anyone
+ *      Click Deploy -> Authorize access -> choose your account.
+ *      If Google says "Google hasn't verified this app": Advanced -> Go to ... (unsafe) -> Allow.
+ *      (It is your own script; it only touches the folder you set.)
+ *   5. Copy the "Web app URL" (ends with /exec).
+ *   6. DriveShot tray icon -> Settings -> paste the Web app URL and the same SECRET -> Test connection -> Save.
+ *
+ * If you edit this code later: Deploy -> Manage deployments -> pencil icon -> Version: New version -> Deploy.
  */
 
-const FOLDER_ID = 'PASTE_DRIVE_FOLDER_ID_HERE';
-const SECRET = 'PASTE_A_LONG_RANDOM_SECRET_HERE';
+const FOLDER_ID = 'PASTE_DRIVE_FOLDER_ID_HERE';       // <-- CHANGE THIS: your Drive folder ID
+const SECRET = 'PASTE_A_LONG_RANDOM_SECRET_HERE';     // <-- CHANGE THIS: any long random text
+
+// Nothing below this line needs to be changed.
 
 function doPost(e) {
   try {

@@ -4,6 +4,7 @@ static class Program
 {
     const string MutexName = @"Local\DriveShot.SingleInstance";
     const string SignalName = @"Local\DriveShot.Capture";
+    const string ExitName = @"Local\DriveShot.Exit";
 
     [STAThread]
     static int Main(string[] args)
@@ -14,6 +15,7 @@ static class Program
 
         if (args.Length >= 2 && args[0] == "--render-test") return SelfTest.Render(args[1]);
         if (args.Length >= 3 && args[0] == "--upload-test") return SelfTest.Upload(args[1], args[2], args.Length >= 4 ? args[3] : null);
+        if (args.Contains("--exit")) return RequestExit(); // used by the installer and uninstaller
 
         bool autostart = args.Contains("--autostart");
         using var mutex = new Mutex(true, MutexName, out bool isFirst);
@@ -29,10 +31,26 @@ static class Program
         }
 
         using var signal = new EventWaitHandle(false, EventResetMode.AutoReset, SignalName);
+        using var exit = new EventWaitHandle(false, EventResetMode.AutoReset, ExitName);
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) => Log.Error("UI", e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Fatal", e.ExceptionObject as Exception);
-        Application.Run(new TrayApp(autostart, signal));
+        Application.Run(new TrayApp(autostart, signal, exit));
+        return 0;
+    }
+
+    /// <summary>Asks a running DriveShot to quit and waits up to 5 seconds for it.</summary>
+    static int RequestExit()
+    {
+        try { using var ev = EventWaitHandle.OpenExisting(ExitName); ev.Set(); }
+        catch { return 0; } // not running
+        try
+        {
+            using var m = Mutex.OpenExisting(MutexName);
+            try { if (m.WaitOne(5000)) m.ReleaseMutex(); }
+            catch (AbandonedMutexException) { }
+        }
+        catch { }
         return 0;
     }
 }

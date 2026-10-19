@@ -24,9 +24,10 @@ sealed class TrayApp : ApplicationContext
     readonly ToolStripMenuItem _recent = new("Recent uploads");
     CaptureOverlay? _overlay;
     SettingsForm? _settingsForm;
+    ConnectForm? _connectForm;
     bool _capturing, _exiting;
 
-    public TrayApp(bool autostart, EventWaitHandle signal)
+    public TrayApp(bool autostart, EventWaitHandle signal, EventWaitHandle exit)
     {
         _ = _ui.Handle;
 
@@ -39,34 +40,40 @@ sealed class TrayApp : ApplicationContext
         };
         _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) StartCapture(250); };
 
+        // The installer asks about startup and makes the shortcuts itself; the portable exe asks here.
+        bool installed = Installation.IsInstalledCopy();
         if (_settings.FirstRun)
         {
-            Autostart.Set(true);
-            StartMenu.Ensure();
+            if (!installed)
+            {
+                Autostart.Set(AskAutostart());
+                StartMenu.Ensure();
+            }
             _settings.FirstRun = false;
             _settings.Save();
         }
-        else
+        else if (!installed)
         {
-            // Keep the paths current if the exe was moved.
-            if (Autostart.IsEnabled()) Autostart.Set(true);
-            if (StartMenu.Exists) StartMenu.Ensure();
+            Autostart.RepointIfMoved();
+            StartMenu.RepointIfMoved();
         }
 
         _hotkeys.Pressed += OnHotkey;
         var failed = RegisterHotkeys();
         if (failed.Count > 0) ReportHotkeyConflict(failed);
-        else if (!autostart) ShowReady();
-        if (string.IsNullOrWhiteSpace(_settings.DriveFolder) && !Drive.UsesAppsScript(_settings)) ShowSettings();
+        else if (!autostart && Drive.IsConfigured(_settings)) ShowReady();
+        if (!Drive.IsConfigured(_settings)) ShowConnect();
 
         var listener = new Thread(() =>
         {
             try
             {
+                var handles = new WaitHandle[] { signal, exit };
                 while (true)
                 {
-                    signal.WaitOne();
+                    int which = WaitHandle.WaitAny(handles);
                     if (_exiting) return;
+                    if (which == 1) { _ui.BeginInvoke(new Action(ExitApp)); return; }
                     _ui.BeginInvoke(new Action(() => StartCapture(0)));
                 }
             }
@@ -91,6 +98,7 @@ sealed class TrayApp : ApplicationContext
         m.Items.Add("Open main Drive folder", null, (_, _) => OpenMainFolder());
         m.Items.Add("Open local copies", null, (_, _) => OpenLocalFolder());
         m.Items.Add(new ToolStripSeparator());
+        m.Items.Add("Connect Google Drive…", null, (_, _) => ShowConnect());
         m.Items.Add("Settings…", null, (_, _) => ShowSettings());
         m.Items.Add("Exit", null, (_, _) => ExitApp());
         m.Opening += (_, _) => RefreshRecent();
@@ -281,6 +289,13 @@ sealed class TrayApp : ApplicationContext
             return;
         }
         finally { image.Dispose(); }
+
+        if (!Drive.IsConfigured(_settings))
+        {
+            _toast.Present(ToastKind.Info, "Saved on this PC", "Connect Google Drive to upload screenshots and get links.", thumb, 0, null,
+                ("Connect Google Drive", ShowConnect), ("Show file", () => Shell.ShowInExplorer(local)));
+            return;
+        }
         await UploadFileAsync(local, when, thumb);
     }
 
@@ -346,17 +361,47 @@ sealed class TrayApp : ApplicationContext
     void ShowSettings()
     {
         if (_settingsForm is { IsDisposed: false }) { _settingsForm.Activate(); return; }
-        _settingsForm = new SettingsForm(_settings);
+        _settingsForm = new SettingsForm(_settings, ShowConnect);
         _settingsForm.FormClosed += (_, _) => _settingsForm = null;
         _settingsForm.Show();
         _settingsForm.Activate();
     }
 
+    void ShowConnect()
+    {
+        _toast.HideToast();
+        if (_connectForm is { IsDisposed: false }) { _connectForm.Activate(); return; }
+        _connectForm = new ConnectForm(_settings);
+        _connectForm.Connected += folderName =>
+            _toast.Present(ToastKind.Success, "Google Drive connected", $"Screenshots will upload to “{folderName}”. Press PrtSc to try it.", null, 6000);
+        _connectForm.FormClosed += (_, _) => _connectForm = null;
+        _connectForm.Show();
+        _connectForm.Activate();
+    }
+
+    static bool AskAutostart()
+    {
+        var yes = new TaskDialogButton("Yes, start with Windows");
+        var no = new TaskDialogButton("No");
+        var page = new TaskDialogPage
+        {
+            Caption = "DriveShot",
+            Heading = "Start DriveShot when Windows starts?",
+            Text = "DriveShot waits in the tray so PrtSc is ready as soon as your PC is on.\nYou can change this later in Settings.",
+            Icon = new TaskDialogIcon(AppIcon.Load(new Size(32, 32))),
+            Buttons = { yes, no },
+            DefaultButton = yes,
+        };
+        return TaskDialog.ShowDialog(page, TaskDialogStartupLocation.CenterScreen) == yes;
+    }
+
     void ExitApp()
     {
+        if (_exiting) return;
         _exiting = true;
         _overlay?.Close();
         _settingsForm?.Close();
+        _connectForm?.Close();
         _hotkeys.Dispose();
         _tray.Visible = false;
         _tray.Dispose();

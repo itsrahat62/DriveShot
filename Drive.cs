@@ -20,6 +20,8 @@ static class Drive
 
     public static bool UsesAppsScript(AppSettings s) => !string.IsNullOrWhiteSpace(s.AppsScriptUrl);
 
+    public static bool IsConfigured(AppSettings s) => UsesAppsScript(s) || !string.IsNullOrWhiteSpace(s.DriveFolder);
+
     public static async Task<UploadResult> UploadAsync(AppSettings s, string localFile, DateTime when, CancellationToken ct = default)
     {
         await Gate.WaitAsync(ct);

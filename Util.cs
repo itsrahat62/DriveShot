@@ -213,23 +213,56 @@ static class StartMenu
 {
     static string ShortcutPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "DriveShot.lnk");
 
-    public static bool Exists => File.Exists(ShortcutPath);
-
     /// <summary>Creates (or re-points) the Start Menu shortcut at the running exe.</summary>
     public static void Ensure()
     {
         try
         {
-            var type = Type.GetTypeFromProgID("WScript.Shell");
-            if (type == null) return;
-            dynamic shell = Activator.CreateInstance(type)!;
-            dynamic link = shell.CreateShortcut(ShortcutPath);
+            dynamic? link = Open();
+            if (link == null) return;
             link.TargetPath = Environment.ProcessPath;
             link.WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath);
             link.Description = "Screenshot tool that uploads to Google Drive";
             link.Save();
         }
         catch (Exception ex) { Log.Error("Start Menu shortcut", ex); }
+    }
+
+    /// <summary>Fixes the shortcut only when the exe it points to no longer exists.</summary>
+    public static void RepointIfMoved()
+    {
+        try
+        {
+            if (!File.Exists(ShortcutPath)) return;
+            dynamic? link = Open();
+            string target = link?.TargetPath ?? "";
+            if (!File.Exists(target)) Ensure();
+        }
+        catch (Exception ex) { Log.Error("Start Menu shortcut", ex); }
+    }
+
+    static dynamic? Open()
+    {
+        var type = Type.GetTypeFromProgID("WScript.Shell");
+        if (type == null) return null;
+        dynamic shell = Activator.CreateInstance(type)!;
+        return shell.CreateShortcut(ShortcutPath);
+    }
+}
+
+static class Installation
+{
+    /// <summary>True when this exe runs from the folder DriveShot-Setup installed it to.</summary>
+    public static bool IsInstalledCopy()
+    {
+        try
+        {
+            using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\DriveShot");
+            if (k?.GetValue("InstallDir") is not string dir || string.IsNullOrWhiteSpace(dir)) return false;
+            var here = Path.GetDirectoryName(Environment.ProcessPath) ?? "";
+            return string.Equals(Path.GetFullPath(dir).TrimEnd('\\'), Path.GetFullPath(here).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
     }
 }
 

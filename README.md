@@ -4,13 +4,21 @@ A Lightshot-style screenshot tool for Windows that uploads straight to **Google 
 Press <kbd>PrtSc</kbd>, select an area, annotate it, and click **Upload** — the image lands in a
 dated sub-folder (`yyyy-MM-dd`) of your Drive folder and the share link is copied to your clipboard.
 
-## Download
+## Install
 
-**[DriveShot.exe](https://github.com/itsrahat62/DriveShot/releases/latest/download/DriveShot.exe)** — Windows 10/11 x64, nothing else to install.
+**[Download DriveShot-Setup.exe](https://github.com/itsrahat62/DriveShot/releases/latest/download/DriveShot-Setup.exe)**
+— Windows 10/11 (64-bit). No admin rights and no .NET install needed.
 
-Run it once: it sits in the tray, adds itself to the Start Menu and to Windows startup, and opens Settings so you
-can connect Google Drive (see below). Windows SmartScreen may warn because the exe isn't code-signed —
-choose *More info → Run anyway*.
+1. Run the setup. Windows SmartScreen may warn because the installer isn't code-signed: click *More info → Run anyway*.
+2. Keep **“Start DriveShot automatically when Windows starts”** ticked if you want PrtSc to work as soon as your PC is on.
+3. When setup finishes, DriveShot starts in the tray and opens **Connect Google Drive**.
+   Follow the five steps there (about 3 minutes, once). Full guide: **[Connect DriveShot to your Google Drive](docs/connect-google-drive.md)**.
+
+Uninstall from *Settings → Apps → Installed apps → DriveShot*.
+
+Prefer no installer? Use the portable
+[DriveShot.exe](https://github.com/itsrahat62/DriveShot/releases/latest/download/DriveShot.exe);
+it asks whether to start with Windows the first time you run it.
 
 ![Capture screen](docs/capture.png)
 
@@ -46,20 +54,15 @@ If Lightshot is running it owns <kbd>PrtSc</kbd>; DriveShot offers to close it. 
 
 ## Connecting Google Drive
 
-DriveShot can upload in two ways. Pick one in **tray icon → Settings**.
+Each person connects their **own** Drive. DriveShot uploads through a small Google Apps Script
+([`apps-script/Code.gs`](apps-script/Code.gs)) that runs in their Google account. It's fast (a couple of
+seconds), has no rate limits, and needs nothing else installed.
 
-### Option 1 — Google Apps Script (recommended)
+Use **tray icon → Connect Google Drive…**: it fills the script in for you and lists every click.
+To set it up by hand, change only `FOLDER_ID` and `SECRET` at the top of `Code.gs`.
+Both ways, plus troubleshooting, are in **[docs/connect-google-drive.md](docs/connect-google-drive.md)**.
 
-Fast (a couple of seconds), no rate limits, nothing to install.
-
-1. Open <https://script.google.com> with the Google account that owns the Drive folder.
-2. **New project**, paste [`apps-script/Code.gs`](apps-script/Code.gs), and fill in `FOLDER_ID`
-   (the part after `/folders/` in the folder's URL) and a long random `SECRET`.
-3. **Deploy → New deployment → Web app**, set *Execute as: Me* and *Who has access: Anyone*,
-   deploy, and allow the permissions.
-4. Paste the **Web app URL** and the same secret into DriveShot Settings and click **Test connection**.
-
-### Option 2 — rclone
+### Alternative: rclone
 
 Uses an existing [rclone](https://rclone.org) Google Drive remote. Leave the Apps Script URL empty and fill in
 the remote name and the Drive folder link. The signed-in account needs **Editor** access to the folder.
@@ -71,11 +74,15 @@ rclone's shared Google client is heavily rate-limited, so uploads can take 10–
 Requires the .NET 9 SDK on Windows.
 
 ```powershell
-dotnet publish DriveShot.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o App
-.\App\DriveShot.exe
+# Self-contained single exe (what the release ships)
+dotnet publish DriveShot.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true `
+  -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o release
+
+# Installer (needs Inno Setup 6) -> release\DriveShot-Setup.exe
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\DriveShot.iss
 ```
 
-Settings, upload history and the log live in `%APPDATA%\DriveShot\`.
+Settings, upload history and the log live in `%APPDATA%\DriveShot\` (override with the `DRIVESHOT_DATA` environment variable).
 
 Developer checks: `DriveShot.exe --render-test <folder>` renders the UI to PNGs, and
 `DriveShot.exe --upload-test <image> <result.txt> [apps-script-url | folder-id]` runs one real upload.

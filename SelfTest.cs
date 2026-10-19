@@ -64,15 +64,21 @@ static class SelfTest
             AppsScriptSecret = "example-secret",
             DriveFolder = "1AbCdEfGhIjKlMnOpQrStUvWxYz",
         };
-        using (var form = new SettingsForm(demo) { StartPosition = FormStartPosition.Manual, Location = new Point(-10000, -10000), ShowInTaskbar = false })
+        void Snap(Form form, string file)
         {
+            form.StartPosition = FormStartPosition.Manual;
+            form.Location = new Point(-10000, -10000);
+            form.ShowInTaskbar = false;
             form.Show();
             Application.DoEvents();
             using var bmp = new Bitmap(form.Width, form.Height);
             form.DrawToBitmap(bmp, new Rectangle(Point.Empty, form.Size));
-            bmp.Save(Path.Combine(outDir, "8-settings.png"), ImageFormat.Png);
+            bmp.Save(Path.Combine(outDir, file), ImageFormat.Png);
             form.Close();
         }
+        using (var form = new SettingsForm(demo, () => { })) Snap(form, "8-settings.png");
+        using (var form = new ConnectForm(new AppSettings { DriveFolder = "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz" }))
+            Snap(form, "9-connect.png");
 
         File.WriteAllText(Path.Combine(outDir, "report.txt"), report.ToString());
         return 0;
