@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DriveShot</AssemblyName>
+    <RootNamespace>DriveShot</RootNamespace>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Product>DriveShot</Product>
+    <Version>1.0.0</Version>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="app.ico" LogicalName="app.ico" />
+  </ItemGroup>
+
+</Project>
