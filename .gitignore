@@ -3,3 +3,4 @@ obj/
 App/
 *.user
 .vs/
+release/

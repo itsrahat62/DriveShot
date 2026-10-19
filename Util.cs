@@ -209,6 +209,30 @@ static class SaveHelper
     }
 }
 
+static class StartMenu
+{
+    static string ShortcutPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "DriveShot.lnk");
+
+    public static bool Exists => File.Exists(ShortcutPath);
+
+    /// <summary>Creates (or re-points) the Start Menu shortcut at the running exe.</summary>
+    public static void Ensure()
+    {
+        try
+        {
+            var type = Type.GetTypeFromProgID("WScript.Shell");
+            if (type == null) return;
+            dynamic shell = Activator.CreateInstance(type)!;
+            dynamic link = shell.CreateShortcut(ShortcutPath);
+            link.TargetPath = Environment.ProcessPath;
+            link.WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath);
+            link.Description = "Screenshot tool that uploads to Google Drive";
+            link.Save();
+        }
+        catch (Exception ex) { Log.Error("Start Menu shortcut", ex); }
+    }
+}
+
 static class AppIcon
 {
     public static Icon Load(Size size)

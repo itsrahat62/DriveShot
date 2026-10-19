@@ -4,6 +4,14 @@ A Lightshot-style screenshot tool for Windows that uploads straight to **Google 
 Press <kbd>PrtSc</kbd>, select an area, annotate it, and click **Upload** — the image lands in a
 dated sub-folder (`yyyy-MM-dd`) of your Drive folder and the share link is copied to your clipboard.
 
+## Download
+
+**[DriveShot.exe](https://github.com/itsrahat62/DriveShot/releases/latest/download/DriveShot.exe)** — Windows 10/11 x64, nothing else to install.
+
+Run it once: it sits in the tray, adds itself to the Start Menu and to Windows startup, and opens Settings so you
+can connect Google Drive (see below). Windows SmartScreen may warn because the exe isn't code-signed —
+choose *More info → Run anyway*.
+
 ![Capture screen](docs/capture.png)
 
 ![Upload finished](docs/uploaded.png)

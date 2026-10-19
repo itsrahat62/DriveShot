@@ -42,10 +42,16 @@ sealed class TrayApp : ApplicationContext
         if (_settings.FirstRun)
         {
             Autostart.Set(true);
+            StartMenu.Ensure();
             _settings.FirstRun = false;
             _settings.Save();
         }
-        else if (Autostart.IsEnabled()) Autostart.Set(true); // keep the path current if the exe moved
+        else
+        {
+            // Keep the paths current if the exe was moved.
+            if (Autostart.IsEnabled()) Autostart.Set(true);
+            if (StartMenu.Exists) StartMenu.Ensure();
+        }
 
         _hotkeys.Pressed += OnHotkey;
         var failed = RegisterHotkeys();
